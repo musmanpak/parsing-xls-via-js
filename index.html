@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+<body>
+<div id="content">
+
+</div>
+<input type="file" id="xlf">
+<script src="shim.min.js"></script>
+<script src="xlsx.min.js"></script>
+<script>
+    window.onload = documentReady();
+    function documentReady(){
+        var X = XLSX;
+        var global_wb;
+
+        var process_wb = (function() {
+            return function process_wb(wb) {
+                global_wb = wb;
+                var destinations = [];
+                var result = {};
+                wb.SheetNames.forEach(function(sheetName) {
+                    var roa = X.utils.sheet_to_json(wb.Sheets[sheetName], {header:2});
+                    if(roa.length) result[sheetName] = roa;
+                });
+
+                var data = result['Wholesale Direct'];
+                var htmlData = {};
+                data.forEach(function(item){
+                    htmlData[item['Destination']]
+                    if(destinations.indexOf(item['Destination'])  == -1){
+                        destinations.push(item['Destination']);
+                        destinations[item['Destination']] = [];
+                    }
+                    var obj = {
+                        'prefix' : item['Prefix'],
+                        'ppmgbp' : item['Peak per min GBP'],
+                        'opmgbp' : item['Offpeak per min GBP'],
+                        'ccgbp' : item['Connection charge GBP'],
+                    }
+                    destinations[item['Destination']].push(obj);
+                });
+                console.log("Countries", destinations);
+                if(typeof console !== 'undefined') console.log("output", new Date());
+                return JSON.stringify(result, 2, 2);
+            };
+        })();
+
+        var do_file = (function() {
+            return function do_file(files) {
+                var f = files[0];
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    if(typeof console !== 'undefined') console.log("onload", new Date());
+                    var data = e.target.result;
+                    process_wb(X.read(data, {type: 'binary'}));
+                };
+                reader.readAsBinaryString(f);
+            };
+        })();
+
+
+        (function() {
+            var xlf = document.getElementById('xlf');
+            if(!xlf.addEventListener) return;
+            function handleFile(e) { do_file(e.target.files); }
+            xlf.addEventListener('change', handleFile, false);
+        })();
+    }
+</script>
+</body>
+</html>
